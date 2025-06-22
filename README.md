@@ -62,3 +62,11 @@ python main.python
 
 > [!IMPORTANT]
 Tener en cuenta que el ejecutable `main.exe` no se encuentra firmado, esto como consecuencia Windows podría arrojar algunas advertencias de que el programa puede ser malicioso. Solo se deben ignorar.
+
+
+## Imágenes del programa:
+
+- ![evidencia 1](https://github.com/user-attachments/assets/391f7ce6-af04-427e-91e1-907b868a3d28)
+- ![evidencia 2](https://github.com/user-attachments/assets/ae90e049-4c44-4b6c-9e05-c2517b48cf9d)
+- ![evidencia 3](https://github.com/user-attachments/assets/df904956-7552-4b49-aa4e-d1b9a0d2314a)
+- ![evidencia 4](https://github.com/user-attachments/assets/db21d5b5-7403-49ba-8f9a-1b6166aa0f3c)
