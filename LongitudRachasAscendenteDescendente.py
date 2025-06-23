@@ -24,9 +24,9 @@ class LongitudRachasAscendenteDescendente:
         self.N_comparaciones = len(self.secuencia_signos)
 
         # Debug: Imprimir información
-        print(f"Debug: Datos de entrada: {len(self.datos)} elementos")
+        print(f"Debug: Datos de entrada: {self.n_total} elementos")
         print(
-            f"Debug: Secuencia de signos: {len(self.secuencia_signos)} elementos")
+            f"Debug: Secuencia de signos: {self.N_comparaciones} elementos")
         print(
             f"Debug: Primeros 20 signos: {''.join(self.secuencia_signos[:20])}")
 
@@ -80,21 +80,19 @@ class LongitudRachasAscendenteDescendente:
         print(f"Debug: Longitud máxima observada: {max_len_obs}")
 
         total_rachas = len(rachas)
-        # Total de observaciones en la secuencia
-        N = len(self.secuencia_signos)
+        # === CORRECCIÓN REALIZADA AQUÍ ===
+        # La 'N' en la fórmula de la frecuencia esperada es el número total de datos, no de comparaciones.
+        N = self.n_total
 
         print(f"Debug: Total de rachas: {total_rachas}")
-        print(f"Debug: N (total observaciones): {N}")
+        print(f"Debug: N (total de datos para la fórmula Ei): {N}")
 
         if total_rachas > 0:
             for i in range(1, max_len_obs + 1):
                 try:
                     # Fórmula exacta: E(Li) = 2/((i+3)!) * [N(i² + 3i + 1) - (i³ + 3i² - i - 4)]
-                    # Ejemplo: E(L1) = 2/(1+3)! * [40(1² + 3*1 + 1) - (1³ + 3*1² - 1 - 4)]
-
                     ei = (2/(factorial(i + 3))) * (N * ((i**2) +
                                                         (3*i) + 1) - ((i**3) + (3*(i**2)) - i - 4))
-
                     expected_counts[i] = ei
 
                 except (ZeroDivisionError, OverflowError) as e:
@@ -130,7 +128,6 @@ class LongitudRachasAscendenteDescendente:
             # Agrupar para que Ei >= 5
             grouped_Oi = []
             grouped_Ei = []
-
             temp_Oi = 0
             temp_Ei = 0
 
@@ -153,11 +150,13 @@ class LongitudRachasAscendenteDescendente:
             # Si queda algo sin agrupar
             if temp_Oi > 0 or temp_Ei > 0:
                 if len(grouped_Ei) > 0:
+                    # Si hay grupos, se suma al último grupo creado (que es el primero en la lista)
                     grouped_Oi[0] += temp_Oi
                     grouped_Ei[0] += temp_Ei
                     print(
                         f"Debug: Agregado al primer grupo - Total Oi={grouped_Oi[0]}, Ei={grouped_Ei[0]}")
                 else:
+                    # Si no se creó ningún grupo (todos son < 5), se crea uno solo
                     grouped_Oi.append(temp_Oi)
                     grouped_Ei.append(temp_Ei)
                     print(
@@ -178,13 +177,9 @@ class LongitudRachasAscendenteDescendente:
             print(f"Debug: k={k}, grados_libertad={grados_libertad}")
 
             # Calcular Chi-cuadrado
-            chi_cuadrado_calculado = 0
-            for i in range(len(grouped_Oi)):
-                if grouped_Ei[i] > 0:
-                    contrib = (grouped_Oi[i] -
-                               grouped_Ei[i]) ** 2 / grouped_Ei[i]
-                    chi_cuadrado_calculado += contrib
-                    print(f"Debug: Grupo {i+1} - Contribución: {contrib:.6f}")
+            chi_cuadrado_calculado = sum(
+                (oi - ei)**2 / ei for oi, ei in zip(grouped_Oi, grouped_Ei) if ei > 0
+            )
 
             print(f"Debug: Chi-cuadrado calculado: {chi_cuadrado_calculado}")
 
@@ -236,6 +231,7 @@ class LongitudRachasAscendenteDescendente:
             return None
 
         try:
+            # Lógica de la GUI sin cambios...
             ventana = tk.Toplevel(parent) if parent else tk.Tk()
             ventana.title(
                 "Tabla Detallada - Longitud de Rachas Ascendente/Descendente")
@@ -244,64 +240,47 @@ class LongitudRachasAscendenteDescendente:
             main_frame = ttk.Frame(ventana, padding="10")
             main_frame.pack(fill=tk.BOTH, expand=True)
 
-            titulo = ttk.Label(main_frame, text="Prueba de Longitud de Rachas Ascendente/Descendente",
-                               font=("Arial", 14, "bold"))
+            titulo = ttk.Label(
+                main_frame, text="Prueba de Longitud de Rachas Ascendente/Descendente", font=("Arial", 14, "bold"))
             titulo.pack(pady=10)
 
-            # Información de la secuencia
             frame_info = ttk.LabelFrame(
                 main_frame, text="Información de la Secuencia", padding="10")
             frame_info.pack(fill=tk.X, pady=5)
-
             secuencia_text = ''.join(self.secuencia_signos[:50])
             if len(self.secuencia_signos) > 50:
                 secuencia_text += "..."
-
             ttk.Label(frame_info, text=f"Secuencia de signos: {secuencia_text}").pack(
                 anchor=tk.W)
             ttk.Label(frame_info, text=f"Longitud de la secuencia: {len(self.secuencia_signos)}").pack(
                 anchor=tk.W)
 
-            # Tabla de frecuencias originales
             frame_original = ttk.LabelFrame(
                 main_frame, text="Frecuencias Originales", padding="10")
             frame_original.pack(fill=tk.X, expand=True, pady=5)
-
-            # Crear scrollbar para la tabla
             frame_tree_orig = ttk.Frame(frame_original)
             frame_tree_orig.pack(fill=tk.BOTH, expand=True)
-
             cols_orig = ('Longitud (i)', 'Oi', 'Ei', 'Probabilidad')
             tree_orig = ttk.Treeview(
                 frame_tree_orig, columns=cols_orig, show='headings', height=6)
-
             scrollbar_orig = ttk.Scrollbar(
                 frame_tree_orig, orient=tk.VERTICAL, command=tree_orig.yview)
             tree_orig.configure(yscrollcommand=scrollbar_orig.set)
-
             for col in cols_orig:
                 tree_orig.heading(col, text=col)
                 tree_orig.column(col, width=120, anchor='center')
-
             df_orig = resultado['df_original']
+            total_ei = sum(df_orig['Ei'])
             for i in df_orig.index:
-                prob = df_orig.loc[i, 'Ei'] / \
-                    sum(df_orig['Ei']) if sum(df_orig['Ei']) > 0 else 0
+                prob = df_orig.loc[i, 'Ei'] / total_ei if total_ei > 0 else 0
                 tree_orig.insert('', 'end', values=(
-                    i,
-                    f"{df_orig.loc[i, 'Oi']:.0f}",
-                    f"{df_orig.loc[i, 'Ei']:.4f}",
-                    f"{prob:.4f}"
-                ))
-
+                    i, f"{df_orig.loc[i, 'Oi']:.0f}", f"{df_orig.loc[i, 'Ei']:.4f}", f"{prob:.4f}"))
             tree_orig.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
             scrollbar_orig.pack(side=tk.RIGHT, fill=tk.Y)
 
-            # Tabla de datos agrupados
             frame_agrupado = ttk.LabelFrame(
                 main_frame, text="Cálculo de Chi-Cuadrado (Datos Agrupados)", padding="10")
             frame_agrupado.pack(fill=tk.X, expand=True, pady=5)
-
             cols_agrup = ('Grupo', 'Oi (agrupado)',
                           'Ei (agrupado)', '(Oi-Ei)²/Ei')
             tree_agrup = ttk.Treeview(
@@ -309,38 +288,25 @@ class LongitudRachasAscendenteDescendente:
             for col in cols_agrup:
                 tree_agrup.heading(col, text=col)
                 tree_agrup.column(col, width=150, anchor='center')
-
             chi_total = 0
             grouped_oi = resultado['grouped_oi']
             grouped_ei = resultado['grouped_ei']
-
             for i in range(len(grouped_oi)):
                 oi = grouped_oi[i]
                 ei = grouped_ei[i]
                 chi_contrib = (oi - ei)**2 / ei if ei > 0 else 0
                 chi_total += chi_contrib
                 tree_agrup.insert('', 'end', values=(
-                    f"Grupo {i+1}",
-                    f"{oi:.0f}",
-                    f"{ei:.4f}",
-                    f"{chi_contrib:.4f}"
-                ))
-
+                    f"Grupo {i+1}", f"{oi:.0f}", f"{ei:.4f}", f"{chi_contrib:.4f}"))
             tree_agrup.insert('', 'end', values=(
-                "TOTAL",
-                f"{sum(grouped_oi):.0f}",
-                f"{sum(grouped_ei):.4f}",
-                f"{chi_total:.4f}"
-            ), tags=('total',))
+                "TOTAL", f"{sum(grouped_oi):.0f}", f"{sum(grouped_ei):.4f}", f"{chi_total:.4f}"), tags=('total',))
             tree_agrup.tag_configure(
                 'total', background='lightblue', font=("Arial", 9, "bold"))
             tree_agrup.pack(fill=tk.X, expand=True)
 
-            # Resultados finales
             frame_resultados = ttk.LabelFrame(
                 main_frame, text="Resultados Finales", padding="10")
             frame_resultados.pack(fill=tk.X, expand=True, pady=10)
-
             ttk.Label(
                 frame_resultados, text=f"Estadístico Chi-cuadrado (χ²): {resultado['estadistico']:.6f}").pack(anchor=tk.W)
             ttk.Label(frame_resultados, text=f"Grados de libertad: {resultado['grados_libertad']}").pack(
@@ -353,12 +319,11 @@ class LongitudRachasAscendenteDescendente:
                 anchor=tk.W)
             ttk.Label(frame_resultados, text=f"Número de comparaciones: {resultado['n_comparaciones']}").pack(
                 anchor=tk.W)
-
-            decision_text = "Se RECHAZA H₀ (Los datos NO son independientes / NO son aleatorios)" if resultado[
-                'rechaza_h0'] else "NO se rechaza H₀ (Los datos son independientes / son aleatorios)"
+            decision_text = "Se RECHAZA H₀ (Los datos NO son independientes)" if resultado[
+                'rechaza_h0'] else "NO se rechaza H₀ (Los datos son independientes)"
             color = "red" if resultado['rechaza_h0'] else "green"
-            ttk.Label(frame_resultados, text=f"Decisión: {decision_text}",
-                      foreground=color, font=("Arial", 10, "bold")).pack(anchor=tk.W, pady=5)
+            ttk.Label(frame_resultados, text=f"Decisión: {decision_text}", foreground=color, font=(
+                "Arial", 10, "bold")).pack(anchor=tk.W, pady=5)
 
             print("Debug: Ventana creada exitosamente")
             return ventana
@@ -374,41 +339,54 @@ class LongitudRachasAscendenteDescendente:
 
 
 def main_asc_desc():
-    print("=== INICIANDO PRUEBAS ===")
+    print("=== INICIANDO PRUEBAS CON DATOS PROPORCIONADOS ===")
 
-    # Datos de prueba más simples
-    np.random.seed(42)
-    datos_test_aleatorios = np.random.rand(50)  # Reducir tamaño para debug
-    datos_test_tendencia = np.array(
-        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])  # Datos simples
+    # Usando los datos de tu archivo de Excel
+    datos_usuario = [
+        0.811, 0.781, 0.046, 0.376, 0.502, 0.313, 0.318, 0.226,
+        0.468, 0.319, 0.939, 0.547, 0.011, 0.981, 0.684, 0.839,
+        0.047, 0.107, 0.609, 0.131, 0.461, 0.145, 0.208, 0.491,
+        0.321, 0.775, 0.608, 0.342, 0.576, 0.598, 0.493, 0.156,
+        0.344, 0.214, 0.195, 0.883, 0.18, 0.348, 0.285, 0.494
+    ]
 
     alpha = 0.05
 
-    print("\n--- Prueba con datos de tendencia simple ---")
+    print("\n--- Prueba con tus datos ---")
     try:
         print("Creando instancia de prueba...")
-        prueba_tendencia = LongitudRachasAscendenteDescendente(
-            datos_test_tendencia, alpha=alpha)
+        prueba_usuario = LongitudRachasAscendenteDescendente(
+            datos_usuario, alpha=alpha)
 
-        print("Ejecutando prueba...")
-        resultado_tendencia = prueba_tendencia.ejecutar()
+        print("\nEjecutando prueba y mostrando resultados de Ei...")
+        resultado_usuario = prueba_usuario.ejecutar()
 
-        if 'error' in resultado_tendencia:
-            print(f"Error en la prueba: {resultado_tendencia['error']}")
+        # Imprimir los valores Ei para verificación
+        if 'df_original' in resultado_usuario:
+            df = resultado_usuario['df_original']
+            if 1 in df.index:
+                # Debería ser 16.7500
+                print(f"Cálculo de E(L1) = {df.loc[1, 'Ei']:.4f}")
+            if 2 in df.index:
+                # Debería ser 7.1000
+                print(f"Cálculo de E(L2) = {df.loc[2, 'Ei']:.4f}")
+
+        if 'error' in resultado_usuario:
+            print(f"Error en la prueba: {resultado_usuario['error']}")
         else:
-            print(f"✓ Prueba ejecutada exitosamente")
-            print(f"Chi-cuadrado: {resultado_tendencia['estadistico']:.6f}")
-            print(f"P-valor: {resultado_tendencia['p_valor']:.6f}")
+            print(f"\n✓ Prueba ejecutada exitosamente")
+            print(f"Chi-cuadrado: {resultado_usuario['estadistico']:.6f}")
+            print(f"P-valor: {resultado_usuario['p_valor']:.6f}")
             print(
-                f"Decisión: {'Rechaza H0' if resultado_tendencia['rechaza_h0'] else 'No rechaza H0'}")
+                f"Decisión: {'Rechaza H0' if resultado_usuario['rechaza_h0'] else 'No rechaza H0'}")
 
-        print("Mostrando tabla...")
-        ventana_tendencia = prueba_tendencia.mostrar_tabla_detallada()
-        if ventana_tendencia:
+        print("\nMostrando tabla detallada...")
+        ventana_usuario = prueba_usuario.mostrar_tabla_detallada()
+        if ventana_usuario:
             print("Ventana creada, iniciando mainloop...")
-            ventana_tendencia.mainloop()
+            ventana_usuario.mainloop()
         else:
-            print("No se pudo crear la ventana")
+            print("No se pudo crear la ventana.")
 
     except Exception as e:
         print(f"Error general: {e}")
